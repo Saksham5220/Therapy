@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:therapy_ai/Pages/home.dart';
+import 'package:brain_therapy/Pages/home.dart';
 
 class Form10 extends StatefulWidget {
   final int currentQuestionIndex;
@@ -59,9 +59,13 @@ class _Form10State extends State<Form10> with SingleTickerProviderStateMixin {
 
   /// Save the selected answer into Firebase Realtime Database
   Future<void> _saveAnswerToFirebase() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid
-        ?? 'anonymous_${DateTime.now().millisecondsSinceEpoch}';
-    final responsesRef = _db.child('users').child(userId).child('survey_responses');
+    final userId =
+        FirebaseAuth.instance.currentUser?.uid ??
+        'anonymous_${DateTime.now().millisecondsSinceEpoch}';
+    final responsesRef = _db
+        .child('users')
+        .child(userId)
+        .child('survey_responses');
 
     await responsesRef.push().set({
       'questionIndex': widget.currentQuestionIndex,
@@ -101,7 +105,10 @@ class _Form10State extends State<Form10> with SingleTickerProviderStateMixin {
             child: Text(
               text,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ),
@@ -128,8 +135,18 @@ class _Form10State extends State<Form10> with SingleTickerProviderStateMixin {
       body: AnimatedBuilder(
         animation: _controller,
         builder: (_, child) {
-          final top = Color.lerp(const Color(0xFFD7CB5C), Colors.white, _controller.value)!;
-          final bottom = Color.lerp(Colors.white, Colors.yellow.shade200, _controller.value)!;
+          final top =
+              Color.lerp(
+                const Color(0xFFD7CB5C),
+                Colors.white,
+                _controller.value,
+              )!;
+          final bottom =
+              Color.lerp(
+                Colors.white,
+                Colors.yellow.shade200,
+                _controller.value,
+              )!;
           return Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -165,7 +182,11 @@ class _Form10State extends State<Form10> with SingleTickerProviderStateMixin {
                             ),
                           ],
                         ),
-                        child: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black87),
+                        child: const Icon(
+                          Icons.arrow_back_ios_new,
+                          size: 20,
+                          color: Colors.black87,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -215,7 +236,8 @@ class _Form10State extends State<Form10> with SingleTickerProviderStateMixin {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
                                 children: [
                                   _hexTile(_choices[0], _colors[0]),
                                   _hexTile(_choices[1], _colors[1]),
@@ -225,7 +247,8 @@ class _Form10State extends State<Form10> with SingleTickerProviderStateMixin {
                               _hexTile(_choices[2], _colors[2]),
                               const SizedBox(height: 28),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
                                 children: [
                                   _hexTile(_choices[3], _colors[3]),
                                   _hexTile(_choices[4], _colors[4]),
@@ -240,7 +263,9 @@ class _Form10State extends State<Form10> with SingleTickerProviderStateMixin {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.deepOrange,
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(16),
                                       ),

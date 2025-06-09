@@ -2,11 +2,12 @@
 
 import 'package:flutter/material.dart';
 import 'chat.dart';
-import 'games.dart';
+import '../games/games.dart';
 import 'journal.dart';
 import 'profile.dart';
 import '../screens/gradient_playlist_section.dart';
 import '../screens/gradient_daily_dose.dart';
+import '../screens/podcasts.dart'; // Import the podcasts page
 
 // Safe wrapper for components that might cause issues
 class SafeWidget extends StatelessWidget {
@@ -81,9 +82,6 @@ class SafeSectionTitle extends StatelessWidget {
     );
   }
 }
-
-// SafeDailyDoseSection and SafePlaylistSection are already provided via
-// gradient_daily_dose_section.dart and gradient_playlist_section.dart.
 
 // Definition for SafeDeepMindReads (placeholder if an error occurs)
 class SafeDeepMindReads extends StatelessWidget {
@@ -165,6 +163,30 @@ class HomePageContent extends StatelessWidget {
   }
 }
 
+// Podcasts Page with Scaffold wrapper for proper navigation
+class PodcastsPageWrapper extends StatelessWidget {
+  const PodcastsPageWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Spiritual Discourses'),
+        backgroundColor: Colors.yellow.shade100,
+        foregroundColor: Colors.brown,
+        elevation: 0,
+        automaticallyImplyLeading:
+            false, // Remove back button since this is a tab
+      ),
+      backgroundColor: Colors.yellow.shade50,
+      body: SafeWidget(
+        componentName: "PodcastsPage",
+        child: const PodcastsPage(),
+      ),
+    );
+  }
+}
+
 // Main Home Page with bottom navigation and animated background
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -183,7 +205,7 @@ class _HomePageState extends State<HomePage>
     HomePageContent(),
     chatPage(),
     gamePage(),
-    JournalPage(),
+    PodcastsPageWrapper(), // Replace JournalPage with PodcastsPageWrapper
     profilePage(),
   ];
 
@@ -218,7 +240,7 @@ class _HomePageState extends State<HomePage>
           bottomNavigationBar: BottomNavigationBar(
             type: BottomNavigationBarType.fixed,
             currentIndex: _currentIndex,
-            selectedItemColor: Colors.brown,
+            selectedItemColor: const Color.fromARGB(255, 31, 29, 29),
             unselectedItemColor: Colors.brown.withOpacity(0.4),
             onTap: (index) {
               setState(() {
@@ -227,10 +249,22 @@ class _HomePageState extends State<HomePage>
             },
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-              BottomNavigationBarItem(icon: Icon(Icons.chat_bubble), label: 'Chat'),
-              BottomNavigationBarItem(icon: Icon(Icons.videogame_asset), label: 'Games'),
-              BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Journal'),
-              BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.chat_bubble),
+                label: 'Chat',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.videogame_asset),
+                label: 'Games',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.podcasts), // Changed icon to podcasts
+                label: 'Podcasts', // Changed label to Podcasts
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person),
+                label: 'Profile',
+              ),
             ],
           ),
         );

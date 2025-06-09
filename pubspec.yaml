@@ -1,4 +1,4 @@
-name: therapy_ai
+name: brain_therapy
 description: "A new Flutter project."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
@@ -27,6 +27,12 @@ dependencies:
   shared_preferences: ^2.5.3
   dart_openai: ^5.1.0
   crypto: ^3.0.6
+  video_player: ^2.10.0
+  # For splash screen
+  flutter_native_splash: ^2.4.1
+  lottie: ^3.1.2
+  # For app icon generation
+  flutter_launcher_icons: ^0.14.1
 
 dev_dependencies:
   flutter_test:
@@ -37,6 +43,48 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  # App icon configuration
+  generate: true
+
   assets:
+    - assets/
+    - assets/images/
+    - assets/images/joy.png
+    - assets/joy.gif
+    - assets/videos/joy.mp4
+    - assets/images/game1.png
+    - assets/images/game2.png
     - assets/google.png
+    - assets/videos/Avatar.mp4
     - .env
+
+# Native splash screen configuration
+flutter_native_splash:
+  color: "#ffffff"
+  image: assets/joy.gif
+  color_dark: "#000000"
+  image_dark: assets/joy.gif
+  android_12:
+    image: assets/joy.gif
+    color: "#ffffff"
+    image_dark: assets/joy.gif
+    color_dark: "#000000"
+
+# App icon configuration
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/joy.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/images/joy.png"
+    background_color: "#hexcode"
+    theme_color: "#hexcode"
+  windows:
+    generate: true
+    image_path: "assets/images/joy.png"
+    icon_size: 48
+  macos:
+    generate: true
+    image_path: "assets/images/joy.png"

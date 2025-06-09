@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'dart:math';
 
 class MentalHealthStatsBubble extends StatefulWidget {
   const MentalHealthStatsBubble({super.key});
 
   @override
-  State<MentalHealthStatsBubble> createState() => _MentalHealthStatsBubbleState();
+  State<MentalHealthStatsBubble> createState() =>
+      _MentalHealthStatsBubbleState();
 }
 
 class _MentalHealthStatsBubbleState extends State<MentalHealthStatsBubble> {
@@ -21,81 +21,80 @@ class _MentalHealthStatsBubbleState extends State<MentalHealthStatsBubble> {
   }
 
   Future<void> _loadSurveyData() async {
-  if (userId == null) return;
+    if (userId == null) return;
 
-  try {
-    final snapshot = await FirebaseDatabase.instance
-        .ref('users/$userId/survey_responses')
-        .get();
+    try {
+      final snapshot =
+          await FirebaseDatabase.instance
+              .ref('users/$userId/survey_responses')
+              .get();
 
-    if (!snapshot.exists) {
-      debugPrint('No survey data found for user.');
-      return;
-    }
-
-    Map<String, int> categoryCounts = {
-      'Stress': 0,
-      'Anxiety': 0,
-      'Focus': 0,
-      'Sleep': 0,
-      'Mood': 0,
-    };
-
-    int matchedCount = 0;
-
-    for (final child in snapshot.children) {
-      final data = child.value as Map<dynamic, dynamic>?;
-
-      if (data == null) continue;
-
-      final question = (data['question'] ?? '').toString().toLowerCase();
-      final answer = (data['answer'] ?? '').toString().toLowerCase();
-
-      bool matched = false;
-
-      if (question.contains('stress') || answer.contains('stress')) {
-        categoryCounts['Stress'] = categoryCounts['Stress']! + 1;
-        matched = true;
-      }
-      if (question.contains('anxiety') || answer.contains('anxious')) {
-        categoryCounts['Anxiety'] = categoryCounts['Anxiety']! + 1;
-        matched = true;
-      }
-      if (question.contains('focus') || answer.contains('distract')) {
-        categoryCounts['Focus'] = categoryCounts['Focus']! + 1;
-        matched = true;
-      }
-      if (question.contains('sleep') || answer.contains('tired')) {
-        categoryCounts['Sleep'] = categoryCounts['Sleep']! + 1;
-        matched = true;
-      }
-      if (question.contains('mood') || answer.contains('upset')) {
-        categoryCounts['Mood'] = categoryCounts['Mood']! + 1;
-        matched = true;
+      if (!snapshot.exists) {
+        debugPrint('No survey data found for user.');
+        return;
       }
 
-      if (matched) matchedCount++;
-    }
-
-    if (matchedCount == 0) {
-      debugPrint('No matches found in survey data.');
-      return;
-    }
-
-    setState(() {
-      categoryScores = {
-        for (var key in categoryCounts.keys)
-          key: (categoryCounts[key]! / matchedCount * 100).clamp(0, 100),
+      Map<String, int> categoryCounts = {
+        'Stress': 0,
+        'Anxiety': 0,
+        'Focus': 0,
+        'Sleep': 0,
+        'Mood': 0,
       };
-    });
 
-    debugPrint('[✅] Final categoryScores: $categoryScores');
-  } catch (e) {
-    debugPrint('❌ Error fetching or parsing survey data: $e');
+      int matchedCount = 0;
+
+      for (final child in snapshot.children) {
+        final data = child.value as Map<dynamic, dynamic>?;
+
+        if (data == null) continue;
+
+        final question = (data['question'] ?? '').toString().toLowerCase();
+        final answer = (data['answer'] ?? '').toString().toLowerCase();
+
+        bool matched = false;
+
+        if (question.contains('stress') || answer.contains('stress')) {
+          categoryCounts['Stress'] = categoryCounts['Stress']! + 1;
+          matched = true;
+        }
+        if (question.contains('anxiety') || answer.contains('anxious')) {
+          categoryCounts['Anxiety'] = categoryCounts['Anxiety']! + 1;
+          matched = true;
+        }
+        if (question.contains('focus') || answer.contains('distract')) {
+          categoryCounts['Focus'] = categoryCounts['Focus']! + 1;
+          matched = true;
+        }
+        if (question.contains('sleep') || answer.contains('tired')) {
+          categoryCounts['Sleep'] = categoryCounts['Sleep']! + 1;
+          matched = true;
+        }
+        if (question.contains('mood') || answer.contains('upset')) {
+          categoryCounts['Mood'] = categoryCounts['Mood']! + 1;
+          matched = true;
+        }
+
+        if (matched) matchedCount++;
+      }
+
+      if (matchedCount == 0) {
+        debugPrint('No matches found in survey data.');
+        return;
+      }
+
+      setState(() {
+        categoryScores = {
+          for (var key in categoryCounts.keys)
+            key: (categoryCounts[key]! / matchedCount * 100).clamp(0, 100),
+        };
+      });
+
+      debugPrint('[✅] Final categoryScores: $categoryScores');
+    } catch (e) {
+      debugPrint('❌ Error fetching or parsing survey data: $e');
+    }
   }
-}
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -109,9 +108,10 @@ class _MentalHealthStatsBubbleState extends State<MentalHealthStatsBubble> {
         spacing: 16,
         runSpacing: 16,
         alignment: WrapAlignment.center,
-        children: categoryScores.entries.map((entry) {
-          return _StatBubble(title: entry.key, percentage: entry.value);
-        }).toList(),
+        children:
+            categoryScores.entries.map((entry) {
+              return _StatBubble(title: entry.key, percentage: entry.value);
+            }).toList(),
       ),
     );
   }
@@ -156,10 +156,7 @@ class _StatBubble extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.white70,
-              ),
+              style: const TextStyle(fontSize: 13, color: Colors.white70),
             ),
           ],
         ),

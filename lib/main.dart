@@ -1,41 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
-import 'package:therapy_ai/Pages/home.dart';
-import 'package:therapy_ai/Launch Sign In/page1.dart';
-import 'services/openai.dart';
+import 'package:brain_therapy/Pages/home.dart';
+import 'package:brain_therapy/Launch Sign In/page1.dart';
+import 'services/ai_services.dart'; // Changed from openai.dart to ai_services.dart
+import 'utils/splash_screen.dart';
+import 'services/api_keys.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment variables from .env file
-  await dotenv.load(fileName: ".env");
+  // Print debug info for API configuration
+  ApiKeys.printDebugInfo();
 
-  // Clear any old OpenAI credentials
-  await OpenAIStorage.clearCredentials();
+  // Initialize AI Service directly
+  AIService.initialize();
 
-  // Get OpenAI API credentials
-  final apiKey = dotenv.env['OPENAI_API_KEY'];
-  final assistantId = dotenv.env['OPENAI_ASSISTANT_ID'];
-
-  print('[Main] API Key from .env: ${apiKey?.substring(0, 20)}...');
-
-  if (apiKey != null && apiKey.startsWith('sk-proj-') && apiKey.length > 50) {
-    await OpenAIStorage.saveCredentials(
-      apiKey: apiKey,
-      assistantId: assistantId ?? '',
-    );
-    print('[Main] ✅ Credentials saved to SharedPreferences');
+  if (ApiKeys.isValidApiKey() && ApiKeys.isValidAssistantId()) {
+    print('[Main] ✅ Valid API credentials');
   } else {
-    print('[Main] ❌ Invalid API key format');
+    print('[Main] ❌ Invalid API credentials');
+    if (!ApiKeys.isValidApiKey()) {
+      print('[Main] ❌ Invalid API key format');
+    }
+    if (!ApiKeys.isValidAssistantId()) {
+      print('[Main] ❌ Invalid Assistant ID format');
+    }
   }
 
   // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(const MyApp());
 }
@@ -48,27 +43,26 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Therapy AI',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: Colors.deepPurple,
-      ),
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
+      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.deepPurple),
+      home: SplashScreen(
+        child: StreamBuilder<User?>(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
 
-          if (snapshot.hasData) {
-            // ✅ User is authenticated
-            return const HomePage();
-          }
+            if (snapshot.hasData) {
+              // ✅ User is authenticated
+              return const HomePage();
+            }
 
-          // 🚪 User not authenticated
-          return const Page1();
-        },
+            // 🚪 User not authenticated
+            return const Page1();
+          },
+        ),
       ),
     );
   }

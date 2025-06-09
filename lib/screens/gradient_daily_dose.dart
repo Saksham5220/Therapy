@@ -2,18 +2,18 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:therapy_ai/services/playlist_service.dart';
+import 'package:brain_therapy/services/playlist_service.dart';
 import '../models/dose.dart';
 import '../screens/daily_doseai.dart';
 import '../services/ai_services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+import '../services/api_keys.dart'; // Import ApiKeys instead of dotenv
 
 class GradientDailyDoseSection extends StatefulWidget {
   const GradientDailyDoseSection({super.key});
 
   @override
-  State<GradientDailyDoseSection> createState() => _GradientDailyDoseSectionState();
+  State<GradientDailyDoseSection> createState() =>
+      _GradientDailyDoseSectionState();
 }
 
 class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
@@ -47,13 +47,14 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
   @override
   void initState() {
     super.initState();
-    
+
     _getCurrentUser();
     _initializeAIService();
     _debugPrintResponses();
     _loadUserStats();
 
-    _dosesFuture = _useAiGenerated ? _fetchAIGeneratedDoses() : _fetchDosesFromFirebase();
+    _dosesFuture =
+        _useAiGenerated ? _fetchAIGeneratedDoses() : _fetchDosesFromFirebase();
 
     _controller = AnimationController(
       vsync: this,
@@ -70,7 +71,7 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
     setState(() {
       _currentUserId = user?.uid;
     });
-    
+
     if (_currentUserId != null) {
       debugPrint('✅ Current user ID: $_currentUserId');
     } else {
@@ -80,39 +81,60 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
 
   /// Load user AI dose statistics
   void _loadUserStats() async {
-  if (_currentUserId == null) return;
+    if (_currentUserId == null) return;
 
-  try {
-    final stats = await AIService.getUserAIDoseStats();
-    if (!mounted || stats == null) return;
+    try {
+      final stats = await AIService.getUserAIDoseStats();
+      if (!mounted || stats == null) return;
 
-    setState(() {
-      _userStats = stats;
-    });
-    debugPrint('📊 User AI dose stats loaded: $stats');
-  } catch (e) {
-    debugPrint('❌ Error loading user stats: $e');
+      setState(() {
+        _userStats = stats;
+      });
+      debugPrint('📊 User AI dose stats loaded: $stats');
+    } catch (e) {
+      debugPrint('❌ Error loading user stats: $e');
+    }
   }
-}
 
-
-
-  /// Initialize AI Service with API key from secure storage
+  /// Initialize AI Service using ApiKeys
   void _initializeAIService() {
-  final apiKey = dotenv.env['OPENAI_API_KEY'];
-
-  if (apiKey != null && apiKey.isNotEmpty) {
-    AIService.initialize(apiKey);
-    debugPrint('✅ AIService initialized with .env API key');
-  } else {
-    debugPrint('❌ Missing or invalid OPENAI_API_KEY in .env file');
+    // Use ApiKeys class instead of dotenv
+    if (ApiKeys.isValidApiKey()) {
+      AIService.initialize(
+        ApiKeys.openaiApiKey,
+      ); // Pass the API key for compatibility
+      debugPrint('✅ AIService initialized with ApiKeys configuration');
+    } else {
+      debugPrint('❌ Invalid API key configuration in ApiKeys');
+    }
   }
-}
 
   /// Debug method to print survey responses
   void _debugPrintResponses() async {
-    debugPrint('🔍 GradientDailyDoseSection: Debug - Printing all survey responses for user $_currentUserId...');
+    debugPrint(
+      '🔍 GradientDailyDoseSection: Debug - Printing all survey responses for user $_currentUserId...',
+    );
     await DailyDoseAI.fetchAndPrintAllSurveyResponses();
+
+    // Also debug cached doses if they exist
+    try {
+      final responses = await DailyDoseAI.getSurveyResponses();
+      if (responses.isNotEmpty) {
+        final surveyId = AIService().generateSurveyId(responses);
+        final cachedDoses = await AIService.getCachedAIDoses(surveyId);
+        if (cachedDoses != null) {
+          debugPrint('🔍 Debug: Found ${cachedDoses.length} cached doses:');
+          for (int i = 0; i < cachedDoses.length; i++) {
+            final dose = cachedDoses[i];
+            debugPrint('  Dose $i: ${dose.toString()}');
+          }
+        } else {
+          debugPrint('🔍 Debug: No cached doses found');
+        }
+      }
+    } catch (e) {
+      debugPrint('🔍 Debug error: $e');
+    }
   }
 
   @override
@@ -128,62 +150,64 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
     }
 
     try {
-      debugPrint('🤖 GradientDailyDoseSection: Starting AI dose generation for user $_currentUserId...');
+      debugPrint(
+        '🤖 GradientDailyDoseSection: Starting AI dose generation for user $_currentUserId...',
+      );
 
       final responses = await DailyDoseAI.getSurveyResponses();
-      debugPrint('📋 GradientDailyDoseSection: Retrieved ${responses.length} responses for AI processing');
+      debugPrint(
+        '📋 GradientDailyDoseSection: Retrieved ${responses.length} responses for AI processing',
+      );
 
       if (responses.isEmpty) {
-        debugPrint('📭 GradientDailyDoseSection: No responses found for AI processing');
+        debugPrint(
+          '📭 GradientDailyDoseSection: No responses found for AI processing',
+        );
         return [];
       }
 
       final String surveyId = AIService().generateSurveyId(responses);
       debugPrint('🔑 Generated survey ID: $surveyId for user $_currentUserId');
 
-      // First check if we have cached doses
-      final cachedDoses = await AIService.getCachedAIDoses(surveyId);
-      if (cachedDoses != null && cachedDoses.isNotEmpty) {
-        debugPrint('💾 Using cached AI doses for user $_currentUserId, survey $surveyId');
-        if (!mounted || !_useAiGenerated) return [];
-        _displayDoses = cachedDoses.map<Dose>((entry) {
-          return Dose(
-            title: entry['title'] ?? 'Untitled',
-            subtitle: entry['subtitle'] ?? '',
-            answer: entry['answer'] ?? '',
-          );
-        }).toList();
-        return _displayDoses!;
-      }
-
-      // Generate new doses if not cached
+      // Use AIService.sendAllSurveyEntries which handles caching internally
       final aiDoses = await AIService.sendAllSurveyEntries(
         surveyResponses: responses,
         surveyId: surveyId,
       );
 
       if (aiDoses == null || aiDoses.isEmpty) {
-        debugPrint('❌ GradientDailyDoseSection: AI returned no doses for user $_currentUserId');
+        debugPrint(
+          '❌ GradientDailyDoseSection: AI returned no doses for user $_currentUserId',
+        );
         return [];
       }
 
       if (!mounted || !_useAiGenerated) return [];
-      
-      _displayDoses = aiDoses.map<Dose>((entry) {
-        return Dose(
-          title: entry['title'] ?? 'Untitled',
-          subtitle: entry['subtitle'] ?? '',
-          answer: entry['answer'] ?? '',
-        );
-      }).toList();
+
+      // Convert AI doses to Dose objects
+      final convertedDoses =
+          aiDoses.map<Dose>((entry) {
+            debugPrint(
+              '🔄 Converting dose: ${entry['title']} - ${entry['subtitle']}',
+            );
+            return Dose(
+              title: entry['title'] ?? 'Untitled',
+              subtitle: entry['subtitle'] ?? '',
+              answer: entry['answer'] ?? '',
+            );
+          }).toList();
 
       // Refresh user stats after generating new doses
       _loadUserStats();
 
-      debugPrint('✅ GradientDailyDoseSection: Successfully generated ${_displayDoses!.length} AI doses for user $_currentUserId');
-      return _displayDoses!;
+      debugPrint(
+        '✅ GradientDailyDoseSection: Successfully processed ${convertedDoses.length} doses for user $_currentUserId',
+      );
+      return convertedDoses;
     } catch (e) {
-      debugPrint('❌ GradientDailyDoseSection: Error generating AI doses for user $_currentUserId: $e');
+      debugPrint(
+        '❌ GradientDailyDoseSection: Error generating AI doses for user $_currentUserId: $e',
+      );
       return _fetchDosesFromFirebase();
     }
   }
@@ -196,25 +220,32 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
     }
 
     try {
-      debugPrint('🔍 GradientDailyDoseSection: Starting to fetch survey responses for user $_currentUserId...');
-      
+      debugPrint(
+        '🔍 GradientDailyDoseSection: Starting to fetch survey responses for user $_currentUserId...',
+      );
+
       // Get survey responses from Firebase
       final responses = await DailyDoseAI.getSurveyResponses();
-      
-      debugPrint('📊 GradientDailyDoseSection: Retrieved ${responses.length} responses from Firebase for user $_currentUserId');
-      
+
+      debugPrint(
+        '📊 GradientDailyDoseSection: Retrieved ${responses.length} responses from Firebase for user $_currentUserId',
+      );
+
       if (responses.isEmpty) {
-        debugPrint('📭 GradientDailyDoseSection: No responses found for user $_currentUserId');
+        debugPrint(
+          '📭 GradientDailyDoseSection: No responses found for user $_currentUserId',
+        );
         return [];
       }
 
       // Convert survey responses to Dose objects
       List<Dose> doses = [];
-      
+
       for (int i = 0; i < responses.length; i++) {
         final response = responses[i];
-        final question = response['question']?.toString() ?? 'No question available';
-        
+        final question =
+            response['question']?.toString() ?? 'No question available';
+
         // Handle both string and list answers
         String answer;
         final rawAnswer = response['answer'];
@@ -223,34 +254,32 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
         } else {
           answer = rawAnswer?.toString() ?? 'No answer provided';
         }
-        
+
         final questionIndex = response['questionIndex'] ?? i;
         final timestamp = response['timestamp'];
 
         String title = 'Question ${questionIndex + 1}';
-        String subtitle = question.length > 50 
-            ? '${question.substring(0, 50)}...' 
-            : question;
+        String subtitle =
+            question.length > 50 ? '${question.substring(0, 50)}...' : question;
 
         if (timestamp != null) {
           final dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
           title += ' • ${dateTime.day}/${dateTime.month}';
         }
 
-        final dose = Dose(
-          title: title,
-          subtitle: subtitle,
-          answer: answer,
-        );
+        final dose = Dose(title: title, subtitle: subtitle, answer: answer);
 
         doses.add(dose);
       }
 
-      debugPrint('✅ GradientDailyDoseSection: Successfully created ${doses.length} dose objects for user $_currentUserId');
+      debugPrint(
+        '✅ GradientDailyDoseSection: Successfully created ${doses.length} dose objects for user $_currentUserId',
+      );
       return doses;
-
     } catch (e) {
-      debugPrint('❌ GradientDailyDoseSection: Error fetching survey responses for user $_currentUserId: $e');
+      debugPrint(
+        '❌ GradientDailyDoseSection: Error fetching survey responses for user $_currentUserId: $e',
+      );
       throw Exception('Failed to fetch survey responses: $e');
     }
   }
@@ -265,7 +294,10 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
 
   void _refreshDoses() {
     setState(() {
-      _dosesFuture = _useAiGenerated ? _fetchAIGeneratedDoses() : _fetchDosesFromFirebase();
+      _dosesFuture =
+          _useAiGenerated
+              ? _fetchAIGeneratedDoses()
+              : _fetchDosesFromFirebase();
       _displayDoses = null;
     });
     _loadUserStats(); // Refresh stats when refreshing doses
@@ -274,7 +306,10 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
   void _toggleDoseType() {
     setState(() {
       _useAiGenerated = !_useAiGenerated;
-      _dosesFuture = _useAiGenerated ? _fetchAIGeneratedDoses() : _fetchDosesFromFirebase();
+      _dosesFuture =
+          _useAiGenerated
+              ? _fetchAIGeneratedDoses()
+              : _fetchDosesFromFirebase();
       _displayDoses = null;
     });
   }
@@ -292,17 +327,18 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
               gradient: LinearGradient(
                 begin: Alignment(alignmentX, 0),
                 end: Alignment(alignmentX - 2, 0),
-                colors: _useAiGenerated 
-                  ? const [
-                      Color(0xFFE1BEE7), // Purple theme for AI
-                      Color(0xFFCE93D8),
-                      Color(0xFFBA68C8),
-                    ]
-                  : const [
-                      Color(0xFFB3E5FC), // Blue theme for survey
-                      Color(0xFF81D4FA),
-                      Color(0xFF4FC3F7),
-                    ],
+                colors:
+                    _useAiGenerated
+                        ? const [
+                          Color(0xFFE1BEE7), // Purple theme for AI
+                          Color(0xFFCE93D8),
+                          Color(0xFFBA68C8),
+                        ]
+                        : const [
+                          Color(0xFFB3E5FC), // Blue theme for survey
+                          Color(0xFF81D4FA),
+                          Color(0xFF4FC3F7),
+                        ],
               ),
               borderRadius: BorderRadius.circular(16),
             ),
@@ -318,31 +354,34 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
                         const CircularProgressIndicator(color: Colors.white),
                         const SizedBox(height: 8),
                         Text(
-                          _useAiGenerated 
-                            ? 'Generating AI doses...' 
-                            : 'Loading survey responses...',
+                          _useAiGenerated
+                              ? 'Generating AI doses...'
+                              : 'Loading survey responses...',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w500,
                           ),
-                          
                         ),
                       ],
                     ),
                   );
                 }
-                
+
                 if (snapshot.hasError) {
                   return Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.error_outline, size: 48, color: Colors.white),
+                        const Icon(
+                          Icons.error_outline,
+                          size: 48,
+                          color: Colors.white,
+                        ),
                         const SizedBox(height: 8),
                         Text(
-                          _useAiGenerated 
-                            ? 'Failed to generate AI doses\n${snapshot.error}'
-                            : 'Failed to load survey responses\n${snapshot.error}',
+                          _useAiGenerated
+                              ? 'Failed to generate AI doses\n${snapshot.error}'
+                              : 'Failed to load survey responses\n${snapshot.error}',
                           textAlign: TextAlign.center,
                           style: const TextStyle(color: Colors.white),
                         ),
@@ -351,7 +390,8 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
                           onPressed: _refreshDoses,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
-                            foregroundColor: _useAiGenerated ? Colors.purple : Colors.blue,
+                            foregroundColor:
+                                _useAiGenerated ? Colors.purple : Colors.blue,
                           ),
                           child: const Text('Retry'),
                         ),
@@ -369,15 +409,17 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          _useAiGenerated ? Icons.psychology : Icons.quiz_outlined, 
-                          size: 48, 
-                          color: Colors.white
+                          _useAiGenerated
+                              ? Icons.psychology
+                              : Icons.quiz_outlined,
+                          size: 48,
+                          color: Colors.white,
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          _useAiGenerated 
-                            ? 'No AI doses available' 
-                            : 'No survey responses available',
+                          _useAiGenerated
+                              ? 'No AI doses available'
+                              : 'No survey responses available',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -387,10 +429,7 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
                         const SizedBox(height: 8),
                         const Text(
                           'Complete the survey to see content here',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 12),
@@ -401,7 +440,10 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
                               onPressed: _refreshDoses,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
-                                foregroundColor: _useAiGenerated ? Colors.purple : Colors.blue,
+                                foregroundColor:
+                                    _useAiGenerated
+                                        ? Colors.purple
+                                        : Colors.blue,
                               ),
                               child: const Text('Refresh'),
                             ),
@@ -410,9 +452,14 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
                               onPressed: _toggleDoseType,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white70,
-                                foregroundColor: _useAiGenerated ? Colors.purple : Colors.blue,
+                                foregroundColor:
+                                    _useAiGenerated
+                                        ? Colors.purple
+                                        : Colors.blue,
                               ),
-                              child: Text(_useAiGenerated ? 'Show Survey' : 'Show AI'),
+                              child: Text(
+                                _useAiGenerated ? 'Show Survey' : 'Show AI',
+                              ),
                             ),
                           ],
                         ),
@@ -432,9 +479,9 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            _useAiGenerated 
-                              ? 'AI Mental Health Doses (${doses.length})'
-                              : 'Survey Highlights (${doses.length})',
+                            _useAiGenerated
+                                ? 'AI Mental Health Doses (${doses.length})'
+                                : 'Survey Highlights (${doses.length})',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16,
@@ -446,14 +493,22 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
                               IconButton(
                                 onPressed: _toggleDoseType,
                                 icon: Icon(
-                                  _useAiGenerated ? Icons.quiz : Icons.psychology,
+                                  _useAiGenerated
+                                      ? Icons.quiz
+                                      : Icons.psychology,
                                   color: Colors.white,
                                 ),
-                                tooltip: _useAiGenerated ? 'Switch to Survey' : 'Switch to AI',
+                                tooltip:
+                                    _useAiGenerated
+                                        ? 'Switch to Survey'
+                                        : 'Switch to AI',
                               ),
                               IconButton(
                                 onPressed: _refreshDoses,
-                                icon: const Icon(Icons.refresh, color: Colors.white),
+                                icon: const Icon(
+                                  Icons.refresh,
+                                  color: Colors.white,
+                                ),
                                 tooltip: 'Refresh',
                               ),
                             ],
@@ -506,23 +561,34 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: (_useAiGenerated ? Colors.purple : Colors.blue).withOpacity(0.1),
+                                        color: (_useAiGenerated
+                                                ? Colors.purple
+                                                : Colors.blue)
+                                            .withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Icon(
-                                            _useAiGenerated ? Icons.psychology : Icons.quiz,
+                                            _useAiGenerated
+                                                ? Icons.psychology
+                                                : Icons.quiz,
                                             size: 12,
-                                            color: _useAiGenerated ? Colors.purple : Colors.blue,
+                                            color:
+                                                _useAiGenerated
+                                                    ? Colors.purple
+                                                    : Colors.blue,
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
                                             '${index + 1}/${doses.length}',
                                             style: TextStyle(
                                               fontSize: 12,
-                                              color: _useAiGenerated ? Colors.purple : Colors.blue,
+                                              color:
+                                                  _useAiGenerated
+                                                      ? Colors.purple
+                                                      : Colors.blue,
                                               fontWeight: FontWeight.w500,
                                             ),
                                           ),
@@ -565,7 +631,6 @@ class _GradientDailyDoseSectionState extends State<GradientDailyDoseSection>
                 );
               },
             ),
-            
           );
         },
       ),
