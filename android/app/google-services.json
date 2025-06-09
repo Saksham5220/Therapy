@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1028235389386",
+    "firebase_url": "https://therapy-f16ea-default-rtdb.firebaseio.com",
+    "project_id": "therapy-f16ea",
+    "storage_bucket": "therapy-f16ea.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1028235389386:android:affd956f96d01e8a94c733",
+        "android_client_info": {
+          "package_name": "com.example.therapy_ai"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1028235389386-q2ubd30s6pj8j68i8v3goep4eso3jrap.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHNS83JwkgCAGhNgaZFG7Nc7_4CoabUx0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1028235389386-q2ubd30s6pj8j68i8v3goep4eso3jrap.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1028235389386-k9jav601t1pku5s1h4fs2oek7cgj1hvj.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.sam.therapyai"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
