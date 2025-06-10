@@ -289,6 +289,148 @@ class AIService {
     }
   }
 
+  // NEW: Single function to fetch all responses from your API
+  static Future<Map<String, dynamic>?> fetchAllResponses() async {
+    const String baseUrl =
+        'YOUR_API_ENDPOINT_HERE'; // Replace with your actual endpoint
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/get-responses'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        debugPrint('✅ Successfully fetched all responses from API');
+        return data;
+      } else {
+        debugPrint('❌ Failed to fetch data: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching all responses: $e');
+      return null;
+    }
+  }
+
+  // NEW: Parse doses from the full response
+  static List<Map<String, String>> parseDoses(
+    Map<String, dynamic> fullResponse,
+  ) {
+    try {
+      final doses = fullResponse['doses'] as List<dynamic>? ?? [];
+      final parsedDoses =
+          doses
+              .map(
+                (dose) => {
+                  'title': dose['title']?.toString() ?? '',
+                  'subtitle': dose['subtitle']?.toString() ?? '',
+                  'answer': dose['answer']?.toString() ?? '',
+                },
+              )
+              .toList();
+
+      debugPrint('✅ Parsed ${parsedDoses.length} doses from response');
+      return parsedDoses;
+    } catch (e) {
+      debugPrint('❌ Error parsing doses: $e');
+      return [];
+    }
+  }
+
+  // NEW: Parse song categories from the full response
+  static List<String> parseSongs(Map<String, dynamic> fullResponse) {
+    try {
+      final songCategories =
+          fullResponse['songCategories'] as List<dynamic>? ?? [];
+      final parsedSongs =
+          songCategories.map((category) => category.toString()).toList();
+
+      debugPrint(
+        '✅ Parsed ${parsedSongs.length} song categories from response',
+      );
+      return parsedSongs;
+    } catch (e) {
+      debugPrint('❌ Error parsing song categories: $e');
+      return [];
+    }
+  }
+
+  // NEW: Parse podcast categories from the full response
+  static List<String> parsePodcasts(Map<String, dynamic> fullResponse) {
+    try {
+      final podcastCategories =
+          fullResponse['podcastCategories'] as List<dynamic>? ?? [];
+      final parsedPodcasts =
+          podcastCategories.map((category) => category.toString()).toList();
+
+      debugPrint(
+        '✅ Parsed ${parsedPodcasts.length} podcast categories from response',
+      );
+      return parsedPodcasts;
+    } catch (e) {
+      debugPrint('❌ Error parsing podcast categories: $e');
+      return [];
+    }
+  }
+
+  // NEW: Parse therapy probabilities from the full response
+  static Map<String, int> parseTherapyProb(Map<String, dynamic> fullResponse) {
+    try {
+      final therapyProb =
+          fullResponse['therapyProbabilities'] as Map<String, dynamic>? ?? {};
+      final parsedTherapy = therapyProb.map(
+        (key, value) => MapEntry(key, value as int? ?? 0),
+      );
+
+      debugPrint(
+        '✅ Parsed ${parsedTherapy.length} therapy probabilities from response',
+      );
+      return parsedTherapy;
+    } catch (e) {
+      debugPrint('❌ Error parsing therapy probabilities: $e');
+      return {};
+    }
+  }
+
+  // NEW: Method to fetch and distribute all data to respective services
+  static Future<void> fetchAndDistributeData() async {
+    try {
+      debugPrint('🔄 Starting fetchAndDistributeData...');
+
+      // Fetch all data in one call
+      final fullResponse = await fetchAllResponses();
+      if (fullResponse == null) {
+        debugPrint('❌ Failed to fetch data from API');
+        return;
+      }
+
+      // Parse all data types
+      final doses = parseDoses(fullResponse);
+      final songCategories = parseSongs(fullResponse);
+      final podcastCategories = parsePodcasts(fullResponse);
+      final therapyProbabilities = parseTherapyProb(fullResponse);
+
+      // Send data to respective services (you'll need to implement these services)
+      // Example calls - implement these based on your service structure:
+
+      // await ScriptedFileService.updateDoses(doses);
+      // await PlaylistServices.updateSongCategories(songCategories);
+      // await PodcastsService.updatePodcastCategories(podcastCategories);
+      // await ProfileService.updateTherapyProbabilities(therapyProbabilities);
+
+      debugPrint('✅ Successfully distributed all data to services');
+      debugPrint('📊 Data summary:');
+      debugPrint('  - Doses: ${doses.length}');
+      debugPrint('  - Song Categories: ${songCategories.length}');
+      debugPrint('  - Podcast Categories: ${podcastCategories.length}');
+      debugPrint('  - Therapy Probabilities: ${therapyProbabilities.length}');
+    } catch (e) {
+      debugPrint('❌ Error in fetchAndDistributeData: $e');
+    }
+  }
+
   /// Send all survey responses at once and get batch response
   static Future<List<Map<String, String>>?> sendAllSurveyEntries({
     required List<Map<String, dynamic>> surveyResponses,
